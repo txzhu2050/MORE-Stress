@@ -1,0 +1,67 @@
+material: # material properties
+  -
+    name: "Si"
+    young_modulus: 130.0e+9
+    poisson_ratio: 0.28
+    thermal_expansion_coefficient: 2.3e-6
+  -
+    name: "Cu"
+    young_modulus: 110.0e+9
+    poisson_ratio: 0.35
+    thermal_expansion_coefficient: 17.0e-6
+  -
+    name: "SiO2"
+    young_modulus: 71.0e+9
+    poisson_ratio: 0.16
+    thermal_expansion_coefficient: 0.5e-6
+temperature: 100.0 # thermal load
+geometry: # geometric parameters
+  height: 10.0 # height of TSV
+  pitch: 2.0 # pitch of TSV
+  diameter: 1.0 # diameter of Cu pillar
+  thickness: 0.1 # thickness of barrier dielectric
+tsv_array: # multiple TSV arrays can be defined
+  -
+    tsv_num: # number of tsvs in the array
+      x: 50
+      y: 50
+solver: # parameters for solving
+  block_tsv_num: # number of tsvs per block 
+    x: 1
+    y: 1
+  dummy_block_num: # number of dummy blocks
+    x: 2
+    y: 2
+  interp_num: # number of interpolation nodes
+    x: 4
+    y: 4
+    z: 4
+  direct_solver: # direct solver used in the one-shot local stage
+    type: "PREONLY"
+    pc_type: "LU"
+    factor_solver_type: "mumps"
+  iterative_solver: # iterative solver used in the global stage
+    type: "GMRES"
+    pc_type: BJACOBI
+    rtol: 1.0e-5
+    atol: 0.1
+    max_it: 1000
+parallel: # mpi & openmp hybrid parallization
+  local:
+    mpi: 2
+    omp: 8
+  global:
+    mpi: 8
+  post_processing:
+    mpi: 4
+plot: # grid num per block
+  x: 100
+  y: 100
+  z: 1
+output_dir: "./task"
+stage: # define which stage should be performed
+  mesh: 0
+  local: 0
+  global: 1
+  post_processing: 1
+
