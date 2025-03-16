@@ -5,7 +5,7 @@ for efficient thermal stress simulation of TSV arrays in 2.5D/3D ICs based on mo
 order reduction. The detailed methodology is described in the paper.
 ## Requirements
 ```
-conda env create -f env.yaml 
+conda env create -f env.yml 
 ```
 Our algorithm is built upon the **FeniCS** framework. For more information, please refer to the project's [homepage](https://fenicsproject.org/).
 ## Usage
