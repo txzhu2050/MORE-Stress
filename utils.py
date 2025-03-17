@@ -43,6 +43,13 @@ def a(u, v, lambda_, mu):
 
 def L(v, alpha, temperature):
     return ufl.inner(alpha * ufl.Identity(3) * temperature, epsilon(v)) * ufl.dx
+
+def sigma_wT(u, lambda_, mu, alpha, temperature):
+    return lambda_ * ufl.nabla_div(u) * ufl.Identity(len(u)) + 2 * mu * epsilon(u) - alpha * ufl.Identity(3) * temperature
+
+def von_mises(u, lambda_, mu, alpha, temperature):
+    s = sigma_wT(u, lambda_, mu, alpha, temperature) - 1. / 3 * ufl.tr(sigma_wT(u, lambda_, mu, alpha, temperature)) * ufl.Identity(len(u))
+    return ufl.sqrt(3. / 2 * ufl.inner(s, s))
     
 def lagrange_interpolation(x, interp_point, interp_num, scale):
     x = x.copy()

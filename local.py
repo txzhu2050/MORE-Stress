@@ -5,28 +5,20 @@ size = comm.size
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('-dir', '--output_dir', type=str)
-parser.add_argument('-tag', '--dummy_tag', type=int)
-parser.add_argument('-E', '--young_modulus', nargs='+', type=float)
-parser.add_argument('-v', '--poisson_ratio', nargs='+', type=float)
-parser.add_argument('-alpha', '--thermal_expansion_coefficient', nargs='+', type=float)
-parser.add_argument('-T', '--thermal_load', type=float)
-parser.add_argument('-p', '--pitch', type=float)
-parser.add_argument('-d', '--diameter', type=float)
-parser.add_argument('-ht', '--height', type=float)
-parser.add_argument('-nt', '--local_tsv_num', nargs='+', type=int)
-parser.add_argument('-ni', '--interp_num', nargs='+', type=int)
-parser.add_argument('-n', '--num_threads', type=str)
+parser.add_argument('--config', type=str)
+parser.add_argument('--nthreads', type=str)
+parser.add_argument('--tag', type=int)
 args = parser.parse_args()
 
 import os
-os.environ["OMP_NUM_THREADS"] = args.num_threads
+os.environ["OMP_NUM_THREADS"] = args.nthreads
 
 from dolfinx import fem, mesh, default_scalar_type
 from dolfinx.fem.petsc import assemble_matrix, assemble_vector, create_vector, apply_lifting, set_bc
 from dolfinx.io import gmshio
 import ufl
 import numpy as np
+import yaml
 from petsc4py import PETSc
 from functools import partial
 import global_assembler as ga
@@ -35,36 +27,46 @@ from pathlib import Path
 import sys
 
 if __name__ == "__main__":
-    young_modulus = args.young_modulus
-    poisson_ratio = args.poisson_ratio
-    thermal_expansion_coefficient = args.thermal_expansion_coefficient
-    thermal_load = args.thermal_load
-    pitch = args.pitch
-    diameter = args.diameter
-    height = args.height
-    local_tsv_num = args.local_tsv_num
-    interp_num = args.interp_num
-    output_dir = Path(args.output_dir)
-    dummy_tag = args.dummy_tag
+    with open(args.config, 'r') as file:
+        config = yaml.safe_load(file)
 
+    output_dir = Path(config['output_dir'])
     if not output_dir.exists():
         raise ValueError("Invalid path")
     
+    materials = config['material']
+    E = []
+    v = []
+    alpha = []
+    for i, material in enumerate(materials):
+        E.append(materials[i]['young_modulus'])
+        v.append(materials[i]['poisson_ratio'])
+        alpha.append(materials[i]['thermal_expansion_coefficient'])
+
+    thermal_load = config['temperature']
+
+    pitch = config['geometry']['pitch']
+    diameter = config['geometry']['diameter']
+    height = config['geometry']['height']
+
+    block_tsv_num = config['solver']['block_tsv_num']
+    interp_num = config['solver']['interp_num']
+    
     if comm.rank == 0:
-        domain, ct, _ = gmshio.read_from_msh(str(output_dir/('mesh'+str(dummy_tag)+'.msh')), MPI.COMM_SELF, 0, gdim=3)
+        domain, ct, _ = gmshio.read_from_msh(str(output_dir/('mesh'+str(args.tag)+'.msh')), MPI.COMM_SELF, 0, gdim=3)
     else:
         with utils.suppress_stdout_stderr():
-            domain, ct, _ = gmshio.read_from_msh(str(output_dir/('mesh'+str(dummy_tag)+'.msh')), MPI.COMM_SELF, 0, gdim=3)
+            domain, ct, _ = gmshio.read_from_msh(str(output_dir/('mesh'+str(args.tag)+'.msh')), MPI.COMM_SELF, 0, gdim=3)
     sys.stdout.reconfigure(line_buffering=True)
 
     lambda__ = []
     mu_ = []
     alpha_ = []
-    for i in range(len(young_modulus)):
-        lambda__.append(young_modulus[i]*poisson_ratio[i]/(1+poisson_ratio[i])/(1-2*poisson_ratio[i]))
-        mu_.append(young_modulus[i]/2/(1+poisson_ratio[i]))
-        alpha_.append(thermal_expansion_coefficient[i]*(3*lambda__[i]+2*mu_[i]))
-    lambda_, mu, alpha = utils.assign_materials(domain, list(range(1, len(young_modulus)+1)), [lambda__, mu_, alpha_], ct)
+    for i in range(len(E)):
+        lambda__.append(E[i]*v[i]/(1+v[i])/(1-2*v[i]))
+        mu_.append(E[i]/2/(1+v[i]))
+        alpha_.append(alpha[i]*(3*lambda__[i]+2*mu_[i]))
+    lambda_, mu, alpha = utils.assign_materials(domain, list(range(1, len(E)+1)), [lambda__, mu_, alpha_], ct)
     temperature = fem.Constant(domain, thermal_load)
 
     tdim = domain.topology.dim
@@ -96,11 +98,11 @@ if __name__ == "__main__":
     solver.setUp() #time-consuming decomposition of A
 
     global_element_dofs = [(i, j, k, d) 
-                           for i in range(interp_num[0]) 
-                           for j in range(interp_num[1]) 
-                           for k in range(interp_num[2]) 
+                           for i in range(interp_num['x']) 
+                           for j in range(interp_num['y']) 
+                           for k in range(interp_num['z']) 
                            for d in range(tdim)
-                           if i*j*k==0 or i==interp_num[0]-1 or j==interp_num[1]-1 or k==interp_num[2]-1]
+                           if i*j*k==0 or i==interp_num['x']-1 or j==interp_num['y']-1 or k==interp_num['z']-1]
     
     rank_dofs = utils.get_rank_parts(global_element_dofs, rank, size)
 
@@ -112,8 +114,8 @@ if __name__ == "__main__":
     uh = fem.Function(V)
     u_bc = fem.Function(V)
     lagrange_interp = partial(utils.lagrange_interpolation,
-                              interp_num=interp_num,
-                              scale=(pitch*local_tsv_num[0], pitch*local_tsv_num[1], height))
+                              interp_num=(interp_num['x'], interp_num['y'], interp_num['z']),
+                              scale=(pitch*block_tsv_num['x'], pitch*block_tsv_num['y'], height))
     for i, dof in enumerate(rank_dofs):
         u_D = partial(lagrange_interp, interp_point=dof)
         u_bc.interpolate(u_D)
@@ -161,6 +163,6 @@ if __name__ == "__main__":
         modes = modes.reshape((-1, local_dof_num))
         global_element_stiffness = ga.calculate_element_stiffness(bilinear_form, modes[:-1])
         global_element_load = ga.calculate_element_load(linear_form, modes[:-1])
-        np.save(output_dir/('stiffness'+str(dummy_tag)), global_element_stiffness)
-        np.save(output_dir/('load'+str(dummy_tag)), global_element_load)
-        np.save(output_dir/('modes'+str(dummy_tag)), modes)
+        np.save(output_dir/('stiffness'+str(args.tag)), global_element_stiffness)
+        np.save(output_dir/('load'+str(args.tag)), global_element_load)
+        np.save(output_dir/('modes'+str(args.tag)), modes)

@@ -52,16 +52,11 @@ parallel: # mpi & openmp hybrid parallization
     omp: 8
   global:
     mpi: 8
-  post_processing:
+  post:
     mpi: 4
 plot: # grid num per block
   x: 100
   y: 100
   z: 1
 output_dir: "./task"
-stage: # define which stage should be performed
-  mesh: 1
-  local: 1
-  global: 1
-  post_processing: 1
 
