@@ -9,8 +9,16 @@ conda env create -f env.yml
 ```
 Our algorithm is built upon the **FeniCS** framework. For more information, please refer to the project's [homepage](https://fenicsproject.org/).
 ## Usage
+To perform the whole process, execute:
 ```
-python main.py config.yml
+python main.py --config config.yml
+```
+To perform each stage seperately, execute:
+```
+python mesh.py --config config.yml (local mesh)
+mpirun -np xxx python local.py --nthreads xxx --config config.yml --tag xxx (one-shot local stage)
+mpirun -np xxx python global.py --config config.yml --array xxx (global stage for array xxx)
+mpirun -np xxx python post.py --config config.yml --array xxx --rst_fname xxx (post-processing for array xxx)
 ```
 ## License
 This repo is released under the MIT License.
