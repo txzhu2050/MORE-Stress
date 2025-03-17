@@ -1,7 +1,7 @@
 # MORE-Stress: Model Order Reduction based Efficient Numerical Algorithm for Thermal Stress Simulation of TSV Arrays in 2.5D/3D IC
 ## Overview
 This repo contains the implementation of **MORE-Stress**, a novel numerical algorithm
-for efficient thermal stress simulation of TSV arrays in 2.5D/3D ICs based on model
+for efficient thermal stress simulation of TSV arrays in 2.5D/3D ICs based on finite element method and model
 order reduction. The detailed methodology is described in the paper.
 ## Requirements
 ```
