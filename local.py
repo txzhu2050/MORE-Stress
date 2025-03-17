@@ -50,7 +50,11 @@ if __name__ == "__main__":
     if not output_dir.exists():
         raise ValueError("Invalid path")
     
-    domain, ct, _ = gmshio.read_from_msh(str(output_dir/('mesh'+str(dummy_tag)+'.msh')), MPI.COMM_SELF, 0, gdim=3)
+    if comm.rank == 0:
+        domain, ct, _ = gmshio.read_from_msh(str(output_dir/('mesh'+str(dummy_tag)+'.msh')), MPI.COMM_SELF, 0, gdim=3)
+    else:
+        with utils.suppress_stdout_stderr():
+            domain, ct, _ = gmshio.read_from_msh(str(output_dir/('mesh'+str(dummy_tag)+'.msh')), MPI.COMM_SELF, 0, gdim=3)
     sys.stdout.reconfigure(line_buffering=True)
 
     lambda__ = []

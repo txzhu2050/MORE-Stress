@@ -83,9 +83,14 @@ if __name__ == "__main__":
     x_ = np.arange(0.5, 0.5+nx)*interval_x-lx/2; y_ = np.arange(0.5, 0.5+ny)*interval_y-ly/2; z_ = np.arange(0.5, 0.5+nz)*interval_z-lz/2
     xx, yy, zz = np.meshgrid(x_, y_, z_)
     local_grid_points = np.vstack((xx.reshape((1, -1)), yy.reshape((1, -1)), zz.reshape((1, -1))))
-
-    domain, ct, _ = gmshio.read_from_msh(str(output_dir/'mesh0.msh'), MPI.COMM_SELF, 0, gdim=3)
+    
+    if comm.rank == 0:
+        domain, ct, _ = gmshio.read_from_msh(str(output_dir/'mesh0.msh'), MPI.COMM_SELF, 0, gdim=3)
+    else:
+        with utils.suppress_stdout_stderr():
+            domain, ct, _ = gmshio.read_from_msh(str(output_dir/'mesh0.msh'), MPI.COMM_SELF, 0, gdim=3)
     sys.stdout.reconfigure(line_buffering=True)
+
     V = fem.functionspace(domain, ("Lagrange", 2, (domain.geometry.dim,)))
     uh = fem.Function(V)
     lambda_, mu, alpha = utils.assign_materials(domain, list(range(1, len(young_modulus)+1)), [lambda__, mu_, alpha_], ct)
@@ -104,7 +109,11 @@ if __name__ == "__main__":
     local_cells_dummy = None
     V_von_mises_dummy = None
     if dummy_tag:
-        domain, ct, _ = gmshio.read_from_msh(str(output_dir/'mesh1.msh'), MPI.COMM_SELF, 0, gdim=3)
+        if comm.rank == 0:
+            domain, ct, _ = gmshio.read_from_msh(str(output_dir/'mesh1.msh'), MPI.COMM_SELF, 0, gdim=3)
+        else:
+            with utils.suppress_stdout_stderr():
+                domain, ct, _ = gmshio.read_from_msh(str(output_dir/'mesh1.msh'), MPI.COMM_SELF, 0, gdim=3)
         sys.stdout.reconfigure(line_buffering=True)
         V = fem.functionspace(domain, ("Lagrange", 2, (domain.geometry.dim,)))
         uh_dummy = fem.Function(V)

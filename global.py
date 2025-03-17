@@ -114,7 +114,7 @@ if __name__ == "__main__":
     local_prescribed_nodes = np.array([], dtype=np.int32)
     for i in range(6):
         if rank == i:
-            df = pd.read_csv('./true/couple_disp_444/10nm/corner/disp_'+str(i)+'.csv', skiprows=8)
+            df = pd.read_csv('./face'+str(i)+'.csv', skiprows=8) #change boundary displacement filenames
             disp = df.iloc[:, 2:].to_numpy(dtype=np.float64)
             face = faces[i]
             local_prescribed_nodes = face[~np.isnan(disp[:,0])]
