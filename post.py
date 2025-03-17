@@ -16,7 +16,6 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str)
 parser.add_argument('--array', type=int)
-parser.add_argument('--rst_fname', type=str)
 args = parser.parse_args()
 
 from pathlib import Path
@@ -24,6 +23,9 @@ import yaml
 import sys
 
 if __name__ == "__main__":
+    if rank == 0:
+        print("\nStart post-processing for tsv array {}!".format(args.array))
+
     with open(args.config, 'r') as file:
             config = yaml.safe_load(file)
 
@@ -40,30 +42,6 @@ if __name__ == "__main__":
         v.append(materials[i]['poisson_ratio'])
         alpha.append(materials[i]['thermal_expansion_coefficient'])
 
-    thermal_load = config['temperature']
-
-    pitch = config['geometry']['pitch']
-    diameter = config['geometry']['diameter']
-    height = config['geometry']['height']
-    
-    dummy_block_num = config['solver']['dummy_block_num']
-    interp_num = config['solver']['interp_num']
-    block_tsv_num = config['solver']['block_tsv_num']
-
-    tsv_num = config['tsv_array'][args.array]['tsv_num']
-    block_num = {'x':tsv_num['x']//block_tsv_num['x'], 'y':tsv_num['y']//block_tsv_num['y']}
-
-    grid_num = config['plot']
-
-    dummy_tag = 0
-    if dummy_block_num['x'] > 0 or dummy_block_num['y'] > 0:
-        dummy_tag = 1
-    x = np.load(output_dir/('x'+str(args.array)+'.npy'))
-    modes = np.load(output_dir/"modes0.npy")
-    modes_dummy = None
-    if dummy_tag:
-        modes_dummy = np.load(output_dir/"modes1.npy")
-    
     lambda__ = []
     mu_ = []
     alpha_ = []
@@ -72,12 +50,38 @@ if __name__ == "__main__":
         mu_.append(E[i]/2/(1+v[i]))
         alpha_.append(alpha[i]*(3*lambda__[i]+2*mu_[i]))
 
+    thermal_load = config['temperature']
+
+    pitch = config['geometry']['pitch']
+    diameter = config['geometry']['diameter']
+    height = config['geometry']['height']
+    
+    interp_num = config['solver']['interp_num']
+    block_tsv_num = config['solver']['block_tsv_num']
+
+    tsv_num = config['tsv_array'][args.array]['tsv_num']
+    block_num = {'x':tsv_num['x']//block_tsv_num['x'], 'y':tsv_num['y']//block_tsv_num['y']}
+
+    dummy_tsv_num = config['tsv_array'][args.array]['dummy_tsv_num']
+    dummy_block_num = {'x':dummy_tsv_num['x']//block_tsv_num['x'], 'y':dummy_tsv_num['y']//block_tsv_num['y']}
+
+    grid_num = config['plot']
     nx, ny, nz = (grid_num['x'], grid_num['y'], grid_num['z'])
     lx, ly, lz = (pitch*block_tsv_num['x'], pitch*block_tsv_num['y'], height)
     interval_x = lx/nx; interval_y = ly/ny; interval_z = lz/nz
     x_ = np.arange(0.5, 0.5+nx)*interval_x-lx/2; y_ = np.arange(0.5, 0.5+ny)*interval_y-ly/2; z_ = np.arange(0.5, 0.5+nz)*interval_z-lz/2
     xx, yy, zz = np.meshgrid(x_, y_, z_)
     local_grid_points = np.vstack((xx.reshape((1, -1)), yy.reshape((1, -1)), zz.reshape((1, -1))))
+
+    dummy_tag = 0
+    if dummy_block_num['x'] > 0 or dummy_block_num['y'] > 0:
+        dummy_tag = 1
+    
+    x = np.load(output_dir/('x'+str(args.array)+'.npy'))
+    modes = np.load(output_dir/"modes0.npy")
+    modes_dummy = None
+    if dummy_tag:
+        modes_dummy = np.load(output_dir/"modes1.npy")
     
     if comm.rank == 0:
         domain, ct, _ = gmshio.read_from_msh(str(output_dir/'mesh0.msh'), MPI.COMM_SELF, 0, gdim=3)
@@ -130,7 +134,7 @@ if __name__ == "__main__":
                            for k in range(interp_num['z']) 
                            for d in range(3)
                            if i*j*k==0 or i==interp_num['x']-1 or j==interp_num['y']-1 or k==interp_num['z']-1]
-    local2global, _= ga.create_local2global_mapping(global_element_dofs, block_num['x']+2*dummy_block_num['y'], block_num['y']+2*dummy_block_num['y'], interp_num['x'], interp_num['y'])
+    local2global, _= ga.create_local2global_mapping(global_element_dofs, block_num['x']+2*dummy_block_num['x'], block_num['y']+2*dummy_block_num['y'], interp_num['x'], interp_num['y'])
     dummy_tags = ga.locate_dummy_blocks(block_num['x'], block_num['y'], dummy_block_num['x'], dummy_block_num['y'])
 
     rank_blocks = utils.get_rank_parts(np.arange((block_num['x']+2*dummy_block_num['x'])*(block_num['y']+2*dummy_block_num['y'])), rank, size)
@@ -160,5 +164,5 @@ if __name__ == "__main__":
     if rank == 0:
         values = values.reshape((-1, local_grid_points.shape[1]))
         contour = utils.reshape_to_contour(values, block_num['x']+2*dummy_block_num['x'], block_num['y']+2*dummy_block_num['y'], grid_num['x'], grid_num['y'], grid_num['z'])
-        np.save(output_dir/args.rst_fname, contour)
+        np.save(output_dir/('vonmises'+str(args.array)), contour)
 

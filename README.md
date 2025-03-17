@@ -16,9 +16,9 @@ python main.py --config config.yml
 To perform each stage seperately, execute:
 ```
 python mesh.py --config config.yml (local mesh)
-mpirun -np xxx python local.py --nthreads xxx --config config.yml --tag xxx (one-shot local stage)
+mpirun -np xxx python local.py --config config.yml (one-shot local stage)
 mpirun -np xxx python global.py --config config.yml --array xxx (global stage for array xxx)
-mpirun -np xxx python post.py --config config.yml --array xxx --rst_fname xxx (post-processing for array xxx)
+mpirun -np xxx python post.py --config config.yml --array xxx (post-processing for array xxx)
 ```
 ## License
 This repo is released under the MIT License.

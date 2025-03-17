@@ -25,13 +25,27 @@ tsv_array: # multiple TSV arrays can be defined
     tsv_num: # number of tsvs in the array
       x: 50
       y: 50
+    dummy_tsv_num: # number of dummy tsvs on the periphery
+      x: 2
+      y: 2 
+  -
+    tsv_num:
+      x: 30
+      y: 80
+    dummy_tsv_num:
+      x: 4
+      y: 1
+  -
+    tsv_num:
+      x: 50
+      y: 50
+    dummy_tsv_num:
+      x: 0
+      y: 0
 solver: # parameters for solving
   block_tsv_num: # number of tsvs per block 
     x: 1
     y: 1
-  dummy_block_num: # number of dummy blocks
-    x: 2
-    y: 2
   interp_num: # number of interpolation nodes
     x: 4
     y: 4

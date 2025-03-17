@@ -10,9 +10,9 @@ output_dir = Path(config['output_dir'])
 if not output_dir.exists():
     raise ValueError("Invalid path")
 
-data = np.load(output_dir/'vonmises0.npy')
+data = np.load(output_dir/'vonmises2.npy')
 
 plt.imshow(data[0, :, :])
-plt.savefig(output_dir/'vonmises0.png')
+plt.savefig(output_dir/'vonmises2.png')
 
 # self-defined plots ...

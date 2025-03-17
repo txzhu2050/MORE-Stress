@@ -21,6 +21,9 @@ import sys
 sys.stdout.reconfigure(line_buffering=True)
 
 if __name__ == "__main__":
+    if rank == 0:
+        print("\nStart calculating the global problem for tsv array {}!".format(args.array))
+
     with open(args.config, 'r') as file:
         config = yaml.safe_load(file)
 
@@ -28,12 +31,14 @@ if __name__ == "__main__":
     if not output_dir.exists():
         raise ValueError("Invalid path")
 
-    dummy_block_num = config['solver']['dummy_block_num']
     interp_num = config['solver']['interp_num']
     block_tsv_num = config['solver']['block_tsv_num']
 
     tsv_num = config['tsv_array'][args.array]['tsv_num']
     block_num = {'x':tsv_num['x']//block_tsv_num['x'], 'y':tsv_num['y']//block_tsv_num['y']}
+
+    dummy_tsv_num = config['tsv_array'][args.array]['dummy_tsv_num']
+    dummy_block_num = {'x':dummy_tsv_num['x']//block_tsv_num['x'], 'y':dummy_tsv_num['y']//block_tsv_num['y']}
 
     dummy_tag = 0
     if dummy_block_num['x'] > 0 or dummy_block_num['y'] > 0:

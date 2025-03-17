@@ -83,9 +83,7 @@ if __name__ == "__main__":
     height = config['geometry']['height']
 
     block_tsv_num = config['solver']['block_tsv_num']
-    dummy_block_num = config['solver']['dummy_block_num']
 
     build_geometry_and_generate_mesh(material_tags, pitch, diameter, thickness, height, block_tsv_num, lcar1=pitch/10, lcar2=diameter/10, fname=output_dir/'mesh0.msh', isdummy=False)
-    if dummy_block_num['x'] > 0 or dummy_block_num['y'] > 0:
-        build_geometry_and_generate_mesh(material_tags, pitch=pitch, height=height, local_tsv_num=block_tsv_num, lcar1=pitch/10, fname=output_dir/'mesh1.msh', isdummy=True)
+    build_geometry_and_generate_mesh(material_tags, pitch=pitch, height=height, local_tsv_num=block_tsv_num, lcar1=pitch/10, fname=output_dir/'mesh1.msh', isdummy=True)
     sys.stdout.reconfigure(line_buffering=True)
