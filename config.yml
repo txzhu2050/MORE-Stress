@@ -60,8 +60,8 @@ plot: # grid num per block
   z: 1
 output_dir: "./task"
 stage: # define which stage should be performed
-  mesh: 0
-  local: 0
+  mesh: 1
+  local: 1
   global: 1
   post_processing: 1
 
